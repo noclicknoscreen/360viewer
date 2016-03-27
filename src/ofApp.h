@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxOscCam.h"
 
 class ofApp : public ofBaseApp{
     
@@ -26,7 +27,7 @@ public:
 //    bool bMousePressed;
 //    
     ofImage texture;
-    ofEasyCam cam;
+    ofxOscCam cam;
     
     ofSpherePrimitive sphere;
     
@@ -36,5 +37,8 @@ public:
     ofMaterial material;
     
 //    int mode;
+    ofxPanel          panel;
+    ofParameterGroup  main;
+    ofParameter<bool> drawUI;
     
 };

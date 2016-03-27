@@ -21,25 +21,20 @@ public:
     void dragEvent(ofDragInfo dragInfo);
     void gotMessage(ofMessage msg);
     
-    bool bFill;
-    bool bWireframe;
-    bool bDrawNormals;
-    bool bDrawAxes;
-    bool bDrawLights;
-    bool bInfoText;
-    bool bMousePressed;
-    bool bSplitFaces;
-    
+    //bool bFill;
+//    bool bInfoText;
+//    bool bMousePressed;
+//    
     ofImage texture;
     ofEasyCam cam;
     
     ofSpherePrimitive sphere;
     
-    ofLight pointLight;
-    ofLight pointLight2;
-    ofLight pointLight3;
+//    ofLight pointLight;
+//    ofLight pointLight2;
+//    ofLight pointLight3;
     ofMaterial material;
     
-    int mode;
+//    int mode;
     
 };

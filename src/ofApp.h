@@ -22,12 +22,14 @@ public:
     void dragEvent(ofDragInfo dragInfo);
     void gotMessage(ofMessage msg);
     
+    void stopChanged(bool & stopChange);
+    
     //bool bFill;
 //    bool bInfoText;
 //    bool bMousePressed;
 //    
     ofImage texture;
-    ofxOscCam cam;
+    ofEasyCam cam;
     
     ofSpherePrimitive sphere;
     
@@ -40,5 +42,22 @@ public:
     ofxPanel          panel;
     ofParameterGroup  main;
     ofParameter<bool> drawUI;
+    
+    ofxPanel panelCam;
+    ofxOscParameterSync sync;
+    ofParameterGroup pgCam;
+    
+    ofParameter<bool>   stop;
+    ofParameter<bool>   up;
+    ofParameter<bool>   down;
+    ofParameter<bool>   left;
+    ofParameter<bool>   right;
+    
+    ofParameter<float>  speedX;
+    ofParameter<float>  speedY;
+    ofParameter<int>  depth;
+    
+    ofParameter<float>  angleX;
+    ofParameter<float>  angleY;
     
 };

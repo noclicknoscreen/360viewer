@@ -2,58 +2,50 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    
+    // Basics
     ofSetVerticalSync(true);
-    ofBackground(20);
+    ofBackground(0);
+    ofFill();
     
+    // Setup texture
     // GL_REPEAT for texture wrap only works with NON-ARB textures //
     ofDisableArbTex();
-    //    texture.load("of.png");
     texture.load("Porte-Verso-A01.png");
     texture.getTexture().setTextureWrap( GL_REPEAT, GL_REPEAT );
     
-    //bFill       = true;
-    /*
-     bWireframe  = true;
-     bDrawNormals= false;
-     bDrawAxes   = false;
-     bDrawLights = false;
-     */
-    //    bInfoText   = true;
-    //    bMousePressed   = false;
-    
-    //    float width     = ofGetWidth() * .12;
-    //    float height    = ofGetHeight() * .12;
-    //
-    //
-    sphere.setRadius(1000);
+    // Setup the sphere
+    sphere.setRadius(2000);
     sphere.setResolution(64);
+    sphere.setPosition(0, 0, 0);
+    sphere.rotate(-180, 0, 0, 1);
+    sphere.setScale(1, 1, 1);
+
+    // Setup Cam ------------------------------------
+    cam.setGlobalPosition(0, 10, 0);
+    cam.setTarget(ofVec3f(0, -10, -100));
     
-    //    mode = 0;
+    pgCam.setName("cam");
     
-    //    ofSetSmoothLighting(true);
-    //    pointLight.setDiffuseColor( ofFloatColor(.85, .85, .55) );
-    //    pointLight.setSpecularColor( ofFloatColor(1.f, 1.f, 1.f));
-    //
-    //    pointLight2.setDiffuseColor( ofFloatColor( 238.f/255.f, 57.f/255.f, 135.f/255.f ));
-    //    pointLight2.setSpecularColor(ofFloatColor(.8f, .8f, .9f));
-    //
-    //    pointLight3.setDiffuseColor( ofFloatColor(19.f/255.f,94.f/255.f,77.f/255.f) );
-    //    pointLight3.setSpecularColor( ofFloatColor(18.f/255.f,150.f/255.f,135.f/255.f) );
+    pgCam.add(stop.set("stop", false));
+    pgCam.add(up.set("up", false));
+    pgCam.add(down.set("down", false));
+    pgCam.add(left.set("left", false));
+    pgCam.add(right.set("right", false));
+    pgCam.add(speedX.set("speedX", 0, -1, 1));
+    pgCam.add(speedY.set("speedY", 0, -1, 1));
     
-    // shininess is a value between 0 - 128, 128 being the most shiny //
-    material.setShininess(120);
-    // the light highlight of the material //
-    material.setSpecularColor(ofColor(255, 255, 255, 255));
-    material.setDiffuseColor(ofFloatColor::red);
-    material.setAmbientColor(ofFloatColor::blue);
+    pgCam.add(depth.set("depth", 300, 0, 300));
     
-    ofSetSphereResolution(24);
+    pgCam.add(angleX.set("angleX", 0, -180, 180));
+    pgCam.add(angleY.set("angleY", 0, 0, 360));
     
-    // ------------------------------------
-    cam.setup();
+    panelCam.setup(pgCam);
+    stop.addListener(this, &ofApp::stopChanged);
     
-    // ------------------------------------
+    // by now needs to pass the gui parameter groups since the panel internally creates it's own group
+    sync.setup((ofParameterGroup&)panelCam.getParameter(),8040,"localhost", 8041);
+    
+    // Setup UI ------------------------------------
     main.setName("main");
     main.add(drawUI.set("drawUI", true));
     
@@ -61,109 +53,73 @@ void ofApp::setup(){
     panel.loadFromFile("main.xml");
     
     panel.setPosition(10, 10);
+    panelCam.setPosition(10, 90);
     
 }
 
 //--------------------------------------------------------------
 void ofApp::update() {
-    //    pointLight.setPosition((ofGetWidth()*.5)+ cos(ofGetElapsedTimef()*.5)*(ofGetWidth()*.3), ofGetHeight()/2, 500);
-    //    pointLight2.setPosition((ofGetWidth()*.5)+ cos(ofGetElapsedTimef()*.15)*(ofGetWidth()*.3),
-    //                            ofGetHeight()*.5 + sin(ofGetElapsedTimef()*.7)*(ofGetHeight()), -300);
-    //
-    //    pointLight3.setPosition(
-    //                            cos(ofGetElapsedTimef()*1.5) * ofGetWidth()*.5,
-    //                            sin(ofGetElapsedTimef()*1.5f) * ofGetWidth()*.5,
-    //                            cos(ofGetElapsedTimef()*.2) * ofGetWidth()
-    //                            );
-    //
-    //    pointLight.setPosition(0, 0, 0);
-    //    pointLight2.setPosition(0, 0, 0);
-    //    pointLight3.setPosition(0, 0, 0);
-    
     // ------------------------------------
-    cam.update();
+    sync.update();
+
+    // -------------------------------------------
+    if(up || down){
+        if(up && speedX < 1)      speedX += 0.1;
+        if(down && speedX > -1)    speedX -= 0.1;
+    }else{
+        speedX = 0.5*speedX;
+        if(abs(speedX) < 0.2)  speedX = 0;
+    }
+    // -------------------------------------------
+    if (left || right) {
+        if(right && speedY < 1)    speedY += 0.1;
+        if(left && speedY > -1)     speedY -= 0.1;
+    }else{
+        speedY = 0.5*speedY;
+        if(abs(speedY) < 0.2)  speedY = 0;
+    }
+    
+    angleX += speedX;
+    if(angleX < 0)   angleX = 0;
+    if(angleX > 180)   angleX = 180;
+    
+    angleY += speedY;
+    
+    /*
+    sphere.tilt(speedX);
+    sphere.pan(speedY);
+     */
+    sphere.setOrientation(ofVec3f(angleX, angleY, -180));
+    ofLog() << "Orientation = " << sphere.getOrientationEuler();
+    
+    cam.setFov(ofMap(depth, 0, 300, 35, 120, true));
+    //ofLog() << cam.getFov();
     
 }
 
 //--------------------------------------------------------------
 void ofApp::draw() {
     
+    // 3D cam stuff --------------------------------------------
     cam.begin();
-    
     ofEnableDepthTest();
-    /*
-     ofEnableLighting();
-     pointLight.enable();
-     pointLight2.enable();
-     pointLight3.enable();
-     */
     
-    // Sphere //
-    sphere.setPosition(ofGetWidth()*.0f, ofGetHeight()*.0f, 0);
-    sphere.setScale(1, 1, 1);
-    //sphere.setPosition(0,0,0);
-    //sphere.rotate(spinX, 1.0, 0.0, 0.0);
-    //sphere.rotate(spinY, 0, 1.0, 0.0);
-    
-    //    if(mode == 3) {
-    //        sphere.setMode( OF_PRIMITIVE_TRIANGLES );
-    //        //triangles = sphere.getMesh().getUniqueFaces();
-    //    }
-    
-    //if(bFill) {
+    // Draw the image on the sphere
     material.begin();
     
     texture.getTexture().bind();
     
-    ofFill();
-    
-    /*        if(mode == 3) {
-     float angle = ofGetElapsedTimef()*3.2;
-     float strength = (sin( angle+.25 )) * .5f * 5.f;
-     ofVec3f faceNormal;
-     for(size_t i = 0; i < triangles.size(); i++ ) {
-     // store the face normal here.
-     // we change the vertices, which makes the face normal change
-     // every time that we call getFaceNormal //
-     faceNormal = triangles[i].getFaceNormal();
-     for(int j = 0; j < 3; j++ ) {
-     triangles[i].setVertex( j, triangles[i].getVertex(j) + faceNormal * strength);
-     }
-     }
-     sphere.getMesh().setFromTriangles( triangles );
-     }*/
     sphere.draw();
     material.end();
-    //}
     
-    //    if(bWireframe) {
-    //        ofNoFill();
-    //        ofSetColor(0, 0, 0);
-    //        sphere.setScale(1.01f);
-    //        sphere.drawWireframe();
-    //        sphere.setScale(1.f);
-    //    }
-    //
-    //    if(bDrawLights) {
-    //        ofFill();
-    //        ofSetColor(pointLight.getDiffuseColor());
-    //        pointLight.draw();
-    //        ofSetColor(pointLight2.getDiffuseColor());
-    //        pointLight2.draw();
-    //        ofSetColor(pointLight3.getDiffuseColor());
-    //        pointLight3.draw();
-    //    }
-    //
     ofDisableDepthTest();
-    
-    ofFill();
     
     cam.end();
     
     // ------------------------------------
     if(drawUI){
-        panel.draw();x
-        cam.panel.draw();
+        panel.draw();
+        panelCam.draw();
     }
     
 }
@@ -184,90 +140,8 @@ void ofApp::keyPressed(int key) {
                 drawUI = true;
             }
             break;
-            //        case 's':
-            //            bFill = !bFill;
-            //            break;
-            //        case 'w':
-            //            bWireframe = !bWireframe;
-            //            break;
-            //        case '1':
-            //            bSplitFaces=false;
-            //            sphere.setResolution(4);
-            //            // icosahedron //
-            //            break;
-            //        case '2':
-            //            bSplitFaces=false;
-            //            sphere.setResolution(8);
-            //            break;
-            //        case '3':
-            //            bSplitFaces=false;
-            //            sphere.setResolution(16);
-            //            break;
-            //        case '4':
-            //            bSplitFaces=false;
-            //            sphere.setResolution(48);
-            //            break;
-            //        case 'n':
-            //            bDrawNormals = !bDrawNormals;
-            //            break;
-            //        case OF_KEY_RIGHT:
-            //            mode++;
-            //            if(mode > 3) mode = 0;
-            //            if(mode==3){
-            //                // to get unique triangles, you have to use triangles mode //
-            //                sphere.setMode( OF_PRIMITIVE_TRIANGLES );
-            //            }
-            //            break;
-            //        case OF_KEY_LEFT:
-            //            mode--;
-            //            if(mode < 0) mode = 3;
-            //            if(mode==3){
-            //                // to get unique triangles, you have to use triangles mode //
-            //                sphere.setMode( OF_PRIMITIVE_TRIANGLES );
-            //            }
-            //            break;
-            //        case 'a':
-            //            bDrawAxes = !bDrawAxes;
-            //            break;
-            //        case 'l':
-            //            bDrawLights = !bDrawLights;
-            //            break;
-            //        case 't':
-            //            bInfoText=!bInfoText;
-            //            break;
-            ////        case 'z':
-            //            bSplitFaces = !bSplitFaces;
-            //
-            //            if(mode == 3) bSplitFaces = false;
-            //
-            //            if(bSplitFaces) {
-            //                sphere.setMode( OF_PRIMITIVE_TRIANGLES );
-            //                vector<ofMeshFace> triangles = sphere.getMesh().getUniqueFaces();
-            //                sphere.getMesh().setFromTriangles( triangles, true );
-            //            } else {
-            //                // vertex normals are calculated with creation, set resolution //
-            //                sphere.setResolution( sphere.getResolution() );
-            //            }
-            //            break;
     }
-    //
-    //    if(mode == 1) {
-    //        sphere.mapTexCoordsFromTexture( texture.getTexture() );
-    //    }
-    
-    //
-    //    if( mode == 3 ) {
-    //
-    //        bSplitFaces = false;
-    //
-    //        // if the faces were split, we can get some weird results, since we
-    //        // might not know what the new strides were,
-    //        // so reset the primitives by calling their setMode function
-    //        // which recreates the mesh with the proper indicies //
-    //        sphere.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
-    //        sphere.mapTexCoords(0, 0, 5, 5);
-    //
-    //    }
+
     
 }
 
@@ -289,12 +163,12 @@ void ofApp::mouseDragged(int x, int y, int button){
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
-    //    bMousePressed = true;
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button){
-    //    bMousePressed = false;
+    
 }
 
 //--------------------------------------------------------------
@@ -321,3 +195,12 @@ void ofApp::gotMessage(ofMessage msg){
 void ofApp::dragEvent(ofDragInfo dragInfo){ 
     
 }
+
+// -------------------------------------------
+void ofApp::stopChanged(bool & stopChange){
+    stop = up = down = left = right = false;
+    angleX = 0;
+    angleY = 0;
+    //speed = 0;
+}
+
